@@ -1,3 +1,4 @@
+// app/[short]/page.tsx
 import { createClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
@@ -6,17 +7,23 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default async function RedirectPage({
-  params,
-}: {
-  params: { short: string };
-}) {
-  const { data } = await supabase
+interface PageProps {
+  params: Promise<{
+    short: string;
+  }>;
+}
+
+export default async function RedirectPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const { data, error } = await supabase
     .from("links")
     .select("long")
-    .eq("short", params.short)
+    .eq("short", resolvedParams.short)
     .single();
 
-  if (data?.long) redirect(data.long);
-  return <h1>Invalid Link</h1>;
+  if (error || !data?.long) {
+    return <h1 className="text-center mt-20 text-2xl">Invalid or expired link</h1>;
+  }
+
+  redirect(data.long);
 }
